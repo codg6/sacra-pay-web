@@ -1,12 +1,12 @@
-// src/layout/Sidebar.tsx
 import { NavLink } from 'react-router-dom'
-import { Buildings, Users, CreditCard, Gear, ChartBar } from '@phosphor-icons/react'
+import { House, CalendarBlank, Users, Receipt, ChartBar, Gear } from '@phosphor-icons/react'
 
 const navItems = [
-  { to: '/organizations', label: 'Organizações', icon: Buildings },
+  { to: '/', label: 'Início', icon: House, end: true },
+  { to: '/events', label: 'Eventos', icon: CalendarBlank },
+  { to: '/transactions', label: 'Transações', icon: Receipt },
   { to: '/users', label: 'Usuários', icon: Users },
-  { to: '/plans', label: 'Planos', icon: CreditCard },
-  { to: '/reports', label: 'Relatórios', icon: ChartBar },
+  { to: '/reports', label: 'Relatório', icon: ChartBar },
   { to: '/settings', label: 'Configurações', icon: Gear },
 ]
 
@@ -21,10 +21,11 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
+            end={end}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive

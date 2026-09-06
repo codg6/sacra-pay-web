@@ -4,15 +4,16 @@ import { useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Users, CalendarBlank, CreditCard, CheckCircle, WarningCircle } from '@phosphor-icons/react'
+import { Users, CalendarBlank, CreditCard, CheckCircle, WarningCircle, Receipt } from '@phosphor-icons/react'
 import { organizationService } from './organizationService'
-import type { OrganizationResponse, OrganizationSummary } from './organizationTypes'
+import type { CardTransactionResponse, OrganizationResponse, OrganizationSummary } from './organizationTypes'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { Icon } from '@phosphor-icons/react'
 import axios from 'axios'
+import { DataTable } from '@/components/data-table/DataTable'
+import { StatCard } from '@/layout/StatCard'
 
 const schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -23,36 +24,47 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-// Cada card de estatística — reutilizável, evita repetir o mesmo JSX 3x
-function StatCard({ icon: Icon, label, value }: { icon: Icon; label: string; value: string | number }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 py-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon size={18} />
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-lg font-semibold text-foreground">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 export function OrganizationDetail() {
   const { id } = useParams<{ id: string }>()
   const [summary, setSummary] = useState<OrganizationSummary | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  
   const [isLoading, setIsLoading] = useState(true)
 
+  const [showTransactions, setShowTransactions] = useState(false)
+  const [transactions, setTransactions] = useState<CardTransactionResponse[]>([])
+  const [txPage, setTxPage] = useState(0)
+  const [txTotalPages, setTxTotalPages] = useState(0)
+  const [txTotalElements, setTxTotalElements] = useState(0)
+  const [txLoading, setTxLoading] = useState(false)
+
+  
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  function loadTransactions(pageToLoad: number) {
+    if (!id) return
+    setTxLoading(true)
+    organizationService.findTransactions(id, pageToLoad).then((res) => {
+      setTransactions(res.data.content)
+      setTxTotalPages(res.data.totalPages)
+      setTxTotalElements(res.data.totalElements)
+      setTxLoading(false)
+    })
+  }
+
+  function handleToggleTransactions() {
+    const next = !showTransactions
+    setShowTransactions(next)
+    if (next && transactions.length === 0) {
+      loadTransactions(0)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -99,9 +111,30 @@ export function OrganizationDetail() {
       {/* Resumo — mesma largura máxima do formulário abaixo, para ficar
           visualmente alinhado com o restante das telas do módulo */}
       <div className="grid grid-cols-3 gap-3 mb-8">
-        <StatCard icon={Users} label="Usuários" value={summary?.userCount ?? 0} />
-        <StatCard icon={CalendarBlank} label="Eventos" value={summary?.eventCount ?? 0} />
-        <StatCard icon={CreditCard} label="Cartões emitidos" value={summary?.cardCount ?? 0} />
+        <StatCard icon={Users} label="Usuários" value={summary?.userCount ?? 0} color="blue" />
+        <StatCard icon={CalendarBlank} label="Eventos" value={summary?.eventCount ?? 0} color="violet" />
+        <StatCard icon={CreditCard} label="Cartões emitidos" value={summary?.cardCount ?? 0} color="amber" />
+        <StatCard icon={Receipt} label="Transações" value={summary?.transactionCount ?? 0} color="emerald" onClick={handleToggleTransactions} />
+
+        {showTransactions && (
+          <div className="mb-8">
+            <DataTable
+              columns={[
+                { header: 'Cartão', accessor: (tx) => tx.cardCode },
+                { header: 'Tipo', accessor: (tx) => tx.type },
+                { header: 'Valor', accessor: (tx) => `R$ ${tx.amount.toFixed(2)}` },
+                { header: 'Data', accessor: (tx) => new Date(tx.createdAt).toLocaleString('pt-BR') },
+              ]}
+              data={transactions}
+              getRowKey={(tx) => tx.id}
+              isLoading={txLoading}
+              page={txPage}
+              totalPages={txTotalPages}
+              totalElements={txTotalElements}
+              onPageChange={(p) => { setTxPage(p); loadTransactions(p) }}
+            />
+          </div>
+        )}
       </div>
 
       <Card className="mb-8">

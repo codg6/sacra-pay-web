@@ -12,6 +12,7 @@ import logo from '@/assets/logo-sacrapay.svg'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 import { useAuth } from '@/context/useAuth'
 import { decodeJwt } from '@/lib/jwt'
+import axios from 'axios'
 
 const schema = z.object({
   email: z.string().min(1, 'E-mail é obrigatório').email('E-mail inválido'),
@@ -41,10 +42,13 @@ export function Login() {
     if (payload?.role === 'SUPER_ADMIN') {
       navigate('/admin')
     } else {
-      navigate('/organizations')
+      navigate('/')
     }
-  } catch {
-    setErrorMessage('E-mail ou senha inválidos.')
+  } catch (err: unknown) {
+    const message = axios.isAxiosError(err) && err.response?.status === 403
+      ? 'Sua organização está inativa. Entre em contato com o suporte.'
+      : 'E-mail ou senha inválidos.'
+    setErrorMessage(message)
   }
 }
 

@@ -10,19 +10,21 @@ export interface OrganizationRequest {
 }
 
 export interface OrganizationResponse {
-  id: string;
-  name: string;
-  cnpj: string;
-  email: string;
-  phone: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  name: string
+  cnpj: string
+  email: string
+  phone: string
+  status: 'ACTIVE' | 'INACTIVE'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface OrganizationSummary {
   userCount: number
   eventCount: number
   cardCount: number
+  transactionCount: number
   billingStatus: string | null
 }
 
@@ -32,4 +34,15 @@ export interface PageResponse<T> {
   size: number
   totalElements: number
   totalPages: number
+}
+
+export interface CardTransactionResponse {
+  id: string
+  cardCode: string
+  type: 'TOPUP' | 'PURCHASE' | 'REFUND'
+  amount: number
+  paymentMethod: string | null
+  refundable: boolean | null
+  saleId: string | null
+  createdAt: string
 }
